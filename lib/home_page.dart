@@ -37,55 +37,58 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: SingleChildScrollView(
-        child: Center(
-          child: StreamBuilder<Event>(
-            stream: ref.onChildChanged,
-            builder: (context, event) {
-              if (event.hasData) {
-                final map = event.data.snapshot.value;
-                _orgImg = map[orgImgKey];
-                _orgSize = map[orgSizeKey];
-                _compImg = map[compImgKey];
-                _compSize = map[compSizeKey];
-                print('$_orgImg\n$_orgSize\n\n$_compImg\n$_compSize\n\n');
-
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Text('Original', style: Theme.of(context).textTheme.headline3),
-                    Image.network(
-                      _orgImg,
-                      errorBuilder: (context, error, stackTrace) => Text(
-                        '😢',
-                        textScaleFactor: 20,
+      body: FutureBuilder<DataSnapshot>(
+        future: ref.once(),
+        builder: (context, snap) {
+          return snap.hasData
+              ? StreamBuilder<DataSnapshot>(
+                  stream: ref.onChildChanged.map((event) => event.snapshot),
+                  initialData: snap.data,
+                  builder: (context, snapshot) {
+                    final map = snapshot.data.value;
+                    _orgImg = map[orgImgKey];
+                    _orgSize = map[orgSizeKey];
+                    _compImg = map[compImgKey];
+                    _compSize = map[compSizeKey];
+                    return SingleChildScrollView(
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            Text('Original', style: Theme.of(context).textTheme.headline3),
+                            Image.network(
+                              _orgImg,
+                              errorBuilder: (context, error, stackTrace) => Text(
+                                '😢',
+                                textScaleFactor: 20,
+                              ),
+                            ),
+                            Text('Size = ${_orgSize.toDouble() / 1000} kb',
+                                style: TextStyle(fontStyle: FontStyle.italic, fontSize: 20)),
+                            Text('\nCompressed', style: Theme.of(context).textTheme.headline3),
+                            Image.network(
+                              _compImg,
+                              errorBuilder: (context, error, stackTrace) => Text(
+                                '😢',
+                                textScaleFactor: 20,
+                              ),
+                            ),
+                            Text('Size = ${_compSize.toDouble() / 1000} kb',
+                                style: TextStyle(fontStyle: FontStyle.italic, fontSize: 20)),
+                            Text(
+                              '\nCompression Ratio = ${(((_orgSize - _compSize) / _orgSize) * 100).toStringAsFixed(2)}%\n',
+                              style: Theme.of(context).textTheme.headline6,
+                            )
+                          ],
+                        ),
                       ),
-                    ),
-                    Text('Size = ${_orgSize.toDouble() / 1000} kb',
-                        style: TextStyle(fontStyle: FontStyle.italic, fontSize: 20)),
-                    Text('\nCompressed', style: Theme.of(context).textTheme.headline3),
-                    Image.network(
-                      _compImg,
-                      errorBuilder: (context, error, stackTrace) => Text(
-                        '😢',
-                        textScaleFactor: 20,
-                      ),
-                    ),
-                    Text('Size = ${_compSize.toDouble() / 1000} kb',
-                        style: TextStyle(fontStyle: FontStyle.italic, fontSize: 20)),
-                    Text(
-                      '\nCompression Ratio = ${(((_orgSize - _compSize) / _orgSize) * 100).toStringAsFixed(2)}%\n',
-                      style: Theme.of(context).textTheme.headline6,
-                    )
-                  ],
+                    );
+                  },
+                )
+              : const Center(
+                  child: CircularProgressIndicator(),
                 );
-              } else {
-                print(event.connectionState);
-                return const CircularProgressIndicator();
-              }
-            },
-          ),
-        ),
+        },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _refresh,
